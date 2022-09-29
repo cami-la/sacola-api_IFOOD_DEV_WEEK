@@ -8,7 +8,7 @@ import me.dio.sacola.resource.dto.ItemDto;
 import me.dio.sacola.service.SacolaService;
 import org.springframework.web.bind.annotation.*;
 
-@Api(value = "/ifood-devweek/sacolas", tags = {"Endpoints para Manipulação da Entidade Sacola"})
+@Api(value="/ifood-devweek/sacolas")
 @RestController
 @RequestMapping("/ifood-devweek/sacolas")
 @RequiredArgsConstructor

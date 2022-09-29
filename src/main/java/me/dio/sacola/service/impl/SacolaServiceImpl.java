@@ -3,7 +3,6 @@ package me.dio.sacola.service.impl;
 import lombok.RequiredArgsConstructor;
 import me.dio.sacola.enumeration.FormaPagamento;
 import me.dio.sacola.model.Item;
-import me.dio.sacola.model.Produto;
 import me.dio.sacola.model.Restaurante;
 import me.dio.sacola.model.Sacola;
 import me.dio.sacola.repository.ItemRepository;
@@ -13,6 +12,7 @@ import me.dio.sacola.resource.dto.ItemDto;
 import me.dio.sacola.service.SacolaService;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -25,53 +25,48 @@ public class SacolaServiceImpl implements SacolaService {
   @Override
   public Item incluirItemNaSacola(ItemDto itemDto) {
     Sacola sacola = verSacola(itemDto.getSacolaId());
+
     if (sacola.isFechada()) {
-      throw new RuntimeException("Não é possível adicionar mais itens nesta sacola.");
+      throw new RuntimeException("Esta sacola está fechada.");
     }
-    Produto produto = getProduto(itemDto);
-    Item item = criarNovoITem(itemDto, sacola, produto);
-    List<Item> itens = sacola.getItens();
-    if(itens.isEmpty()){
-      itens.add(item);
-      sacolaRepository.save(sacola);
+
+    Item itemParaSerInserido = Item.builder()
+        .quantidade(itemDto.getQuantidade())
+        .sacola(sacola)
+        .produto(produtoRepository.findById(itemDto.getProdutoId()).orElseThrow(
+            () -> {
+              throw new RuntimeException("Esse produto não existe!");
+            }
+        ))
+        .build();
+
+    List<Item> itensDaScola = sacola.getItens();
+    if (itensDaScola.isEmpty()) {
+      itensDaScola.add(itemParaSerInserido);
     } else {
-      Restaurante restauranteSacola = itens.get(0).getProduto().getRestaurante();
-      Restaurante restauranteItemAtual = item.getProduto().getRestaurante();
-      if(restauranteSacola.equals(restauranteItemAtual)) {
-        itens.add(item);
-        sacolaRepository.save(sacola);
+      Restaurante restauranteAtual = itensDaScola.get(0).getProduto().getRestaurante();
+      Restaurante restauranteDoItemParaAdicionar = itemParaSerInserido.getProduto().getRestaurante();
+      if (restauranteAtual.equals(restauranteDoItemParaAdicionar)) {
+        itensDaScola.add(itemParaSerInserido);
       } else {
-        throw new RuntimeException("Você só pode adicionar itens de um restaurante por vez.");
+        throw new RuntimeException("Não é possível adicionar produtos de restaurantes diferentes. Feche a sacola ou esvazie.");
       }
     }
-    calculaValorTotalSacola(sacola, item, itens);
-    sacolaRepository.save(sacola);
-    return itemRepository.save(item);
-  }
 
-  private static Item criarNovoITem(ItemDto itemDto, Sacola sacola, Produto produto) {
-    return Item.builder()
-        .sacola(sacola)
-        .quantidade(itemDto.getQuantidade())
-        .produto(produto)
-        .build();
-  }
+    List<Double> valorDosItens = new ArrayList<>();
+    for (Item itemDaSacola: itensDaScola) {
+      double valorTotalItem =
+          itemDaSacola.getProduto().getValorUnitario() * itemDaSacola.getQuantidade();
+      valorDosItens.add(valorTotalItem);
+    }
 
-  private Produto getProduto(ItemDto itemDto) {
-    return produtoRepository.findById(itemDto.getProdutoId()).orElseThrow(
-        () -> {
-          throw new RuntimeException("Esse produto não existe!");
-        }
-    );
-  }
+    double valorTotalSacola = valorDosItens.stream()
+        .mapToDouble(valorTotalDeCadaItem -> valorTotalDeCadaItem)
+        .sum();
 
-  private static void calculaValorTotalSacola(Sacola sacola, Item item, List<Item> itens) {
-    Double valorTotalSacola = itens.stream()
-        .map(itemSacola -> itemSacola.getProduto().getValorUnitario() * item.getQuantidade())
-        .toList()
-        .stream()
-        .reduce(0.0, Double::sum);
     sacola.setValorTotal(valorTotalSacola);
+    sacolaRepository.save(sacola);
+    return itemParaSerInserido;
   }
 
   @Override
