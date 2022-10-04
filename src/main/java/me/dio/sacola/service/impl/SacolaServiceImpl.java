@@ -1,32 +1,41 @@
 package me.dio.sacola.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.dio.sacola.enumeration.FormaPagamento;
 import me.dio.sacola.model.Item;
 import me.dio.sacola.model.Restaurante;
 import me.dio.sacola.model.Sacola;
-import me.dio.sacola.repository.ItemRepository;
 import me.dio.sacola.repository.ProdutoRepository;
 import me.dio.sacola.repository.SacolaRepository;
 import me.dio.sacola.resource.dto.ItemDto;
 import me.dio.sacola.service.SacolaService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class SacolaServiceImpl implements SacolaService {
+  public static final String ERROR_RUNTIME_EXCEPTION_IN_METHOD = "Error RuntimeException in Method";
+  public static final String STARTING_METHOD = "Starting Method";
+  @Autowired
   private final SacolaRepository sacolaRepository;
+  @Autowired
   private final ProdutoRepository produtoRepository;
-  private final ItemRepository itemRepository;
 
   @Override
-  public Item incluirItemNaSacola(ItemDto itemDto) {
+  public Item incluirItemNaSacola(final ItemDto itemDto) {
+    String methodName = "incluirItemNaSacola";
+    log.info(STARTING_METHOD + methodName);
+
     Sacola sacola = verSacola(itemDto.getSacolaId());
 
     if (sacola.isFechada()) {
+      log.error(ERROR_RUNTIME_EXCEPTION_IN_METHOD + methodName);
       throw new RuntimeException("Esta sacola está fechada.");
     }
 
@@ -35,6 +44,7 @@ public class SacolaServiceImpl implements SacolaService {
         .sacola(sacola)
         .produto(produtoRepository.findById(itemDto.getProdutoId()).orElseThrow(
             () -> {
+              log.error(ERROR_RUNTIME_EXCEPTION_IN_METHOD + methodName);
               throw new RuntimeException("Esse produto não existe!");
             }
         ))
@@ -49,6 +59,7 @@ public class SacolaServiceImpl implements SacolaService {
       if (restauranteAtual.equals(restauranteDoItemParaAdicionar)) {
         itensDaScola.add(itemParaSerInserido);
       } else {
+        log.error(ERROR_RUNTIME_EXCEPTION_IN_METHOD + methodName);
         throw new RuntimeException("Não é possível adicionar produtos de restaurantes diferentes. Feche a sacola ou esvazie.");
       }
     }
@@ -70,25 +81,26 @@ public class SacolaServiceImpl implements SacolaService {
   }
 
   @Override
-  public Sacola verSacola(Long id) {
+  public Sacola verSacola(final Long id) {
+    String methodName = "verSacola";
+    log.info(STARTING_METHOD + methodName);
     return sacolaRepository.findById(id).orElseThrow(
         () -> {
+          log.error(ERROR_RUNTIME_EXCEPTION_IN_METHOD + methodName);
           throw new RuntimeException("Essa sacola não existe!");
         }
     );
   }
 
   @Override
-  public Sacola fecharSacola(Long id, int numeroformaPagamento) {
+  public Sacola fecharSacola(final Long id, final int numeroformaPagamento) {
+    String methodName = "fecharSacola";
+    log.info(STARTING_METHOD + methodName);
+
     Sacola sacola = verSacola(id);
     if (sacola.getItens().isEmpty()) {
       throw new RuntimeException("Inclua ítens na sacola!");
     }
-    /*if (numeroformaPagamento == 0) {
-      sacola.setFormaPagamento(FormaPagamento.DINHEIRO);
-    } else {
-      sacola.setFormaPagamento(FormaPagamento.MAQUINETA);
-    }*/
     FormaPagamento formaPagamento =
         numeroformaPagamento == 0 ? FormaPagamento.DINHEIRO : FormaPagamento.MAQUINETA;
     sacola.setFormaPagamento(formaPagamento);

@@ -5,7 +5,7 @@ import me.dio.sacola.model.Sacola;
 import me.dio.sacola.resource.dto.ItemDto;
 
 public interface SacolaService {
-  Item incluirItemNaSacola(ItemDto itemDto);
-  Sacola verSacola(Long id);
-  Sacola fecharSacola(Long id, int formaPagamento);
+  Item incluirItemNaSacola(final ItemDto itemDto);
+  Sacola verSacola(final Long id);
+  Sacola fecharSacola(final Long id, final int formaPagamento);
 }
